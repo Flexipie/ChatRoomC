@@ -100,6 +100,174 @@ The client uses a multi-threaded architecture:
    - Clean prompt handling
    - Real-time message display
 
+## System Architecture Overview
+
+### Shared Data Structures
+
+#### Client Structure
+```c
+typedef struct {
+    int socket;
+    char username[USERNAME_SIZE];
+    char current_room[ROOM_NAME_SIZE];
+    bool is_active;
+    pid_t handler_pid;
+} Client;
+```
+- Maintains client connection state
+- Tracks current room and activity status
+- Associates process ID with client handler
+
+#### Message Data Structure
+```c
+typedef struct {
+    int target_socket;
+    char message[BUFFER_SIZE];
+} MessageData;
+```
+- Used for message routing between clients
+- Maintains message integrity during transmission
+
+## Server-Side Implementation
+
+### Core Functions
+
+#### 1. Main Process Management
+`main()`:
+- Initializes server socket on port 8888
+- Sets up shared memory and semaphores
+- Spawns message handling thread
+- Accepts incoming connections
+- Creates child processes for each client
+
+#### 2. Client Connection Handling
+`handle_client(int client_socket)`:
+- Manages individual client connections
+- Processes incoming messages
+- Handles command interpretation (/join, /pm, /exit)
+- Maintains client state in shared memory
+- Implements error handling and cleanup
+
+#### 3. Room Management
+`join_room(int client_index, const char *new_room)`:
+- Manages room transitions
+- Broadcasts join/leave messages
+- Updates client room status
+- Handles room-specific message routing
+
+#### 4. Message Broadcasting
+`broadcast_to_room(const char *message, const char *room, int exclude_socket)`:
+- Sends messages to all room members
+- Excludes sender from broadcast
+- Implements room-specific message filtering
+- Handles message delivery failures
+
+#### 5. Private Messaging
+`send_private_message(const char *from_username, const char *to_username, const char *message)`:
+- Implements direct user-to-user messaging
+- Validates recipient existence
+- Handles delivery confirmation
+- Manages error cases
+
+#### 6. Resource Management
+`cleanup()`:
+- Releases shared memory
+- Closes all client connections
+- Removes semaphores
+- Terminates child processes
+- Ensures proper system cleanup
+
+## Client-Side Implementation
+
+### Core Functions
+
+#### 1. Connection Management
+`main(int argc, char *argv[])`:
+- Establishes server connection
+- Handles command-line arguments
+- Initializes threads
+- Sets up signal handlers
+
+#### 2. Message Reception
+`receive_messages(void *arg)`:
+- Runs in separate thread
+- Handles incoming server messages
+- Updates client display
+- Manages connection status
+
+#### 3. User Interface
+`show_prompt()` & `clear_line()`:
+- Manages terminal interface
+- Handles user input
+- Maintains clean display
+
+## Inter-Process Communication (IPC)
+
+### Shared Memory
+- Used for client state management
+- Protected by semaphores
+- Enables cross-process communication
+
+### Message Pipes
+- Used for asynchronous message delivery
+- Implements non-blocking communication
+- Handles message queuing
+
+## Thread Safety
+
+### Semaphore Usage
+- Protects shared memory access
+- Prevents race conditions
+- Ensures data consistency
+
+### Signal Handling
+- Graceful shutdown implementation
+- Resource cleanup coordination
+- Process termination management
+
+## Error Handling
+
+### Connection Errors
+- Socket timeout management
+- Connection loss recovery
+- Buffer overflow prevention
+
+### Resource Exhaustion
+- Client limit enforcement
+- Memory allocation checks
+- File descriptor management
+
+## Performance Considerations
+
+### Message Processing
+- Non-blocking I/O operations
+- Efficient message routing
+- Minimal memory copying
+
+### Scalability
+- Process-per-client model
+- Shared memory optimization
+- Resource pooling
+
+## Security Implementation
+
+### Input Validation
+- Message size limits
+- Command syntax checking
+- Buffer overflow prevention
+
+### Resource Protection
+- Client isolation
+- Memory protection
+- File descriptor limits
+
+## Known Limitations
+
+1. Fixed maximum client count
+2. Single server instance
+3. Basic authentication
+4. Limited room persistence
+
 ## Usage
 
 ### Starting the Server:
@@ -116,40 +284,6 @@ Example:
 ```bash
 ./client 127.0.0.1 8888
 ```
-
-## Error Handling
-
-Both server and client implement comprehensive error handling:
-
-1. **Server**:
-   - Connection failures
-   - Resource allocation errors
-   - Process termination
-   - Memory management errors
-
-2. **Client**:
-   - Connection loss
-   - Invalid commands
-   - Server disconnection
-   - Resource cleanup
-
-## Implementation Notes
-
-1. **Cleanup Process**:
-   - Proper resource deallocation
-   - Child process termination
-   - Socket cleanup
-   - IPC resource cleanup
-
-2. **Thread Safety**:
-   - Mutex-protected shared resources
-   - Semaphore-controlled access
-   - Safe process termination
-
-3. **Performance Considerations**:
-   - Non-blocking operations where possible
-   - Efficient message broadcasting
-   - Optimized resource usage
 
 ## Building
 
