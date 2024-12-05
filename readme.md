@@ -100,173 +100,42 @@ The client uses a multi-threaded architecture:
    - Clean prompt handling
    - Real-time message display
 
-## System Architecture Overview
+## Key Module Overview
 
-### Shared Data Structures
+### Error Handling
+- Comprehensive error detection and recovery mechanisms
+- Custom error codes and descriptive error messages
+- Exception handling for network failures and resource allocation
+- Graceful degradation and cleanup procedures
+- Logging system for error tracking and debugging
 
-#### Client Structure
-```c
-typedef struct {
-    int socket;
-    char username[USERNAME_SIZE];
-    char current_room[ROOM_NAME_SIZE];
-    bool is_active;
-    pid_t handler_pid;
-} Client;
-```
-- Maintains client connection state
-- Tracks current room and activity status
-- Associates process ID with client handler
+### Pointers and Structures
+- Dynamic memory allocation using malloc/free
+- Complex data structures for user and room management
+- Pointer-based linked lists for message queues
+- Structure-based client information management
+- Memory-safe pointer operations with validation
 
-#### Message Data Structure
-```c
-typedef struct {
-    int target_socket;
-    char message[BUFFER_SIZE];
-} MessageData;
-```
-- Used for message routing between clients
-- Maintains message integrity during transmission
+### File Handling and Preprocessor Directives
+- Configuration file parsing and management
+- Log file creation and management
+- Header file organization with include guards
+- Conditional compilation for platform-specific code
+- Macro definitions for constants and debug options
 
-## Server-Side Implementation
+### Concurrent Programming
+- Multi-process architecture with fork()
+- Thread management with pthreads
+- Mutex locks for resource synchronization
+- Semaphores for process synchronization
+- Race condition prevention mechanisms
 
-### Core Functions
-
-#### 1. Main Process Management
-`main()`:
-- Initializes server socket on port 8888
-- Sets up shared memory and semaphores
-- Spawns message handling thread
-- Accepts incoming connections
-- Creates child processes for each client
-
-#### 2. Client Connection Handling
-`handle_client(int client_socket)`:
-- Manages individual client connections
-- Processes incoming messages
-- Handles command interpretation (/join, /pm, /exit)
-- Maintains client state in shared memory
-- Implements error handling and cleanup
-
-#### 3. Room Management
-`join_room(int client_index, const char *new_room)`:
-- Manages room transitions
-- Broadcasts join/leave messages
-- Updates client room status
-- Handles room-specific message routing
-
-#### 4. Message Broadcasting
-`broadcast_to_room(const char *message, const char *room, int exclude_socket)`:
-- Sends messages to all room members
-- Excludes sender from broadcast
-- Implements room-specific message filtering
-- Handles message delivery failures
-
-#### 5. Private Messaging
-`send_private_message(const char *from_username, const char *to_username, const char *message)`:
-- Implements direct user-to-user messaging
-- Validates recipient existence
-- Handles delivery confirmation
-- Manages error cases
-
-#### 6. Resource Management
-`cleanup()`:
-- Releases shared memory
-- Closes all client connections
-- Removes semaphores
-- Terminates child processes
-- Ensures proper system cleanup
-
-## Client-Side Implementation
-
-### Core Functions
-
-#### 1. Connection Management
-`main(int argc, char *argv[])`:
-- Establishes server connection
-- Handles command-line arguments
-- Initializes threads
-- Sets up signal handlers
-
-#### 2. Message Reception
-`receive_messages(void *arg)`:
-- Runs in separate thread
-- Handles incoming server messages
-- Updates client display
-- Manages connection status
-
-#### 3. User Interface
-`show_prompt()` & `clear_line()`:
-- Manages terminal interface
-- Handles user input
-- Maintains clean display
-
-## Inter-Process Communication (IPC)
-
-### Shared Memory
-- Used for client state management
-- Protected by semaphores
-- Enables cross-process communication
-
-### Message Pipes
-- Used for asynchronous message delivery
-- Implements non-blocking communication
-- Handles message queuing
-
-## Thread Safety
-
-### Semaphore Usage
-- Protects shared memory access
-- Prevents race conditions
-- Ensures data consistency
-
-### Signal Handling
-- Graceful shutdown implementation
-- Resource cleanup coordination
-- Process termination management
-
-## Error Handling
-
-### Connection Errors
-- Socket timeout management
-- Connection loss recovery
-- Buffer overflow prevention
-
-### Resource Exhaustion
-- Client limit enforcement
-- Memory allocation checks
-- File descriptor management
-
-## Performance Considerations
-
-### Message Processing
+### Networking and Sockets
+- TCP/IP socket programming
+- Client-server communication protocol
+- Socket options and configurations
 - Non-blocking I/O operations
-- Efficient message routing
-- Minimal memory copying
-
-### Scalability
-- Process-per-client model
-- Shared memory optimization
-- Resource pooling
-
-## Security Implementation
-
-### Input Validation
-- Message size limits
-- Command syntax checking
-- Buffer overflow prevention
-
-### Resource Protection
-- Client isolation
-- Memory protection
-- File descriptor limits
-
-## Known Limitations
-
-1. Fixed maximum client count
-2. Single server instance
-3. Basic authentication
-4. Limited room persistence
+- Network buffer management
 
 ## Usage
 
@@ -285,13 +154,94 @@ Example:
 ./client 127.0.0.1 8888
 ```
 
-## Building
+## Error Handling
 
-Compile the server and client:
-```bash
-gcc -o server server.c -pthread
-gcc -o client client.c -pthread
-```
+Both server and client implement comprehensive error handling:
+
+1. **Server**:
+   - Connection failures
+   - Resource allocation errors
+   - Process termination
+   - Memory management errors
+
+2. **Client**:
+   - Connection loss
+   - Invalid commands
+   - Server disconnection
+   - Resource cleanup
+
+## Implementation Notes
+
+1. **Cleanup Process**:
+   - Proper resource deallocation
+   - Child process termination
+   - Socket cleanup
+   - IPC resource cleanup
+
+2. **Thread Safety**:
+   - Mutex-protected shared resources
+   - Semaphore-controlled access
+   - Safe process termination
+
+3. **Performance Considerations**:
+   - Non-blocking operations where possible
+   - Efficient message broadcasting
+   - Optimized resource usage
+
+## Building the Project
+
+The chat system now supports cross-platform building using CMake. Follow these instructions for your platform:
+
+### Windows
+
+1. Install prerequisites:
+   - Install [Visual Studio](https://visualstudio.microsoft.com/) with C++ development tools
+   - Install [CMake](https://cmake.org/download/)
+
+2. Build the project:
+   ```cmd
+   mkdir build
+   cd build
+   cmake ..
+   cmake --build . --config Release
+   ```
+
+3. The executables will be in `build\Release\`:
+   - `client.exe`
+   - `server.exe`
+
+### Linux/macOS
+
+1. Install prerequisites:
+   ```bash
+   # Ubuntu/Debian
+   sudo apt-get install build-essential cmake
+
+   # macOS (using Homebrew)
+   brew install cmake
+   ```
+
+2. Build the project:
+   ```bash
+   mkdir build
+   cd build
+   cmake ..
+   make
+   ```
+
+3. The executables will be in the `build` directory:
+   - `client`
+   - `server`
+
+## Platform-Specific Notes
+
+### Windows
+- The Windows Firewall may prompt you to allow the applications through. Accept this to enable network communication.
+- Run the executables from Command Prompt or PowerShell with administrator privileges if needed.
+
+### Linux/macOS
+- You may need to adjust firewall settings using `ufw` (Ubuntu) or System Preferences (macOS).
+- Make sure to run `chmod +x` on the executables if needed.
 
 ## Dependencies
 - POSIX compliant system
