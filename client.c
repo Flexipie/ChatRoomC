@@ -67,6 +67,19 @@ void *receive_messages(void *arg) {
         }
         buffer[bytes_received] = '\0';
         
+        // Handle server exit acknowledgment
+        if (strcmp(buffer, "SERVER_EXIT_ACK\n") == 0) {
+            printf("\nExiting chat... Press enter to exit\n");
+            client_running = false;
+            // Force main thread to exit by closing the socket
+            if (sock >= 0) {
+                shutdown(sock, SHUT_RDWR);
+                close(sock);
+                sock = -1;
+            }
+            break;
+        }
+        
         pthread_mutex_lock(&mutex);
         clear_line();
         printf("%s\n", buffer);
@@ -151,7 +164,6 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    // Main input loop
     while (client_running) {
         char input[BUFFER_SIZE];
         show_prompt();
