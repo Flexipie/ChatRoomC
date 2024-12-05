@@ -190,6 +190,10 @@ Both server and client implement comprehensive error handling:
 
 ## Building the Project
 
+To compile the project we use these commands:
+gcc -o server server.c -pthread
+gcc -o client client.c -pthread
+
 The chat system now supports cross-platform building using CMake. Follow these instructions for your platform:
 
 ### Windows
